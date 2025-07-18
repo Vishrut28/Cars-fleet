@@ -5,7 +5,7 @@ if (process.env.NODE_ENV !== 'production') {
 const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg'); // PostgreSQL client
 const logger = require('./logger');
 
 const app = express();
@@ -28,17 +28,23 @@ app.use(session({
   }
 }));
 
-const DB_PATH = './database.db';
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    logger.error('Error connecting to database:', err);
-  } else {
-    logger.info('✅ SQLite Database connected.');
-    db.run('PRAGMA foreign_keys = ON;');
+// PostgreSQL Database Connection Pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Required for cloud providers like Railway
   }
 });
 
-require('./db-init')(db);
+// Initialize database schema on startup
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    logger.error('Error connecting to the database:', err);
+  } else {
+    logger.info(`✅ PostgreSQL Database connected at ${res.rows[0].now}`);
+    require('./db-init')(pool);
+  }
+});
 
 const requireAuth = (role = null) => (req, res, next) => {
     if (!req.session || !req.session.userId) {
@@ -50,12 +56,12 @@ const requireAuth = (role = null) => (req, res, next) => {
     next();
 };
 
-const authRoutes = require('./routes/auth')(db);
-const adminRoutes = require('./routes/admin')(db);
-const auditorRoutes = require('./routes/auditor')(db);
-const groundRoutes = require('./routes/ground')(db);
-const yardRoutes = require('./routes/yard')(db);
-const publicRoutes = require('./routes/public')(db);
+const authRoutes = require('./routes/auth')(pool);
+const adminRoutes = require('./routes/admin')(pool);
+const auditorRoutes = require('./routes/auditor')(pool);
+const groundRoutes = require('./routes/ground')(pool);
+const yardRoutes = require('./routes/yard')(pool);
+const publicRoutes = require('./routes/public')(pool);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', requireAuth('admin'), adminRoutes);
@@ -71,10 +77,8 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => logger.info(`🚀 Server listening on port ${port}`));
 
-process.on('SIGINT', () => {
-  db.close((err) => {
-    if (err) logger.error(err.message);
-    logger.info('Database connection closed.');
-    process.exit(0);
-  });
+process.on('SIGINT', async () => {
+  logger.info('Closing database connection pool.');
+  await pool.end();
+  process.exit(0);
 });
