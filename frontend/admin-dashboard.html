@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - CARS24</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <h1 class="dashboard-title"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
+                <div class="header-right">
+                    <button class="sync-btn" id="syncDataBtn"><i class="fas fa-sync-alt"></i> Sync Data</button>
+                    <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+            </div>
+        </header>
+        <main class="admin-main">
+            <section class="stats-section">
+                <div class="section-header"><h2><i class="fas fa-chart-line"></i> Overall Statistics</h2></div>
+                <div class="stats-grid">
+                    <div class="stat-card blue"><div class="stat-icon"><i class="fas fa-car"></i></div><div class="stat-content"><h3>Total Assigned Cars</h3><div class="stat-number" id="total-assigned">...</div></div></div>
+                    <div class="stat-card green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-content"><h3>Total Cleaned</h3><div class="stat-number" id="total-cleaned">...</div></div></div>
+                    <div class="stat-card red"><div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-content"><h3>Overdue Cleaning</h3><div class="stat-number" id="overdue-count">...</div></div></div>
+                    <div class="stat-card purple"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-content"><h3>Reports Awaiting Review</h3><div class="stat-number" id="pending-reports">...</div></div></div>
+                </div>
+            </section>
+            <section class="actions-section">
+                <div class="actions-grid">
+                    <div class="action-card">
+                        <div class="card-header"><h3><i class="fas fa-users"></i> User Management</h3></div>
+                        <div class="card-content">
+                            <div class="form-group"><label for="user-email-input">Email</label><input type="email" id="user-email-input" placeholder="user@example.com"></div>
+                            <div class="form-group"><label for="user-role-select">Role</label><select id="user-role-select"><option value="ground">Ground Team</option><option value="yard_manager">Yard Manager</option><option value="auditor">Auditor</option><option value="admin">Admin</option></select></div>
+                            <button class="primary-btn" id="setUserRoleBtn"><i class="fas fa-user-plus"></i> Set User Role</button>
+                        </div>
+                    </div>
+                    <div class="action-card">
+                        <div class="card-header"><h3><i class="fas fa-car-side"></i> Car Assignment</h3></div>
+                        <div class="card-content">
+                            <div class="form-group"><label for="car-reg-input">Registration Number</label><input type="text" id="car-reg-input" placeholder="e.g., UP81BZ3484"></div>
+                            <div class="form-group"><label for="hub-select">Hub Location</label><select id="hub-select"><option value="">Loading hubs...</option></select></div>
+                            <button class="primary-btn" id="assignCarBtn"><i class="fas fa-plus"></i> Assign Car</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="config.js"></script>
+    <script>
+        const headers = { 'Content-Type': 'application/json' };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+            loadHubs();
+            document.getElementById('syncDataBtn').addEventListener('click', syncData);
+            document.getElementById('setUserRoleBtn').addEventListener('click', setUserRole);
+            document.getElementById('assignCarBtn').addEventListener('click', assignCar);
+        });
+
+        async function showAlert(message, isError = false) {
+            alert(message);
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/stats`);
+                const stats = await res.json();
+                if (!res.ok) throw new Error(stats.error || 'Failed to load stats');
+                document.getElementById('total-assigned').textContent = stats.total_assigned || 0;
+                document.getElementById('total-cleaned').textContent = stats.total_cleaned || 0;
+                document.getElementById('overdue-count').textContent = stats.overdue_count || 0;
+                document.getElementById('pending-reports').textContent = stats.pending_reports || 0;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                showAlert('Could not load dashboard statistics.', true);
+            }
+        }
+
+        async function loadHubs() {
+            try {
+                const res = await fetch(`${API_URL}/api/hubs`);
+                const hubs = await res.json();
+                if (!res.ok) throw new Error(hubs.error || 'Failed to load hubs');
+                const hubSelect = document.getElementById('hub-select');
+                hubSelect.innerHTML = '<option value="">Select Hub</option>' + hubs.map(hub => `<option value="${hub.name}">${hub.name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading hubs:', error);
+                document.getElementById('hub-select').innerHTML = '<option value="">Error loading hubs</option>';
+            }
+        }
+
+        async function setUserRole() {
+            const email = document.getElementById('user-email-input').value;
+            const role = document.getElementById('user-role-select').value;
+            if (!email) return showAlert('Please enter an email address.');
+            try {
+                const res = await fetch(`${API_URL}/api/admin/set-user-role`, { method: 'POST', headers, body: JSON.stringify({ email, role }) });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error);
+                showAlert(result.message);
+                document.getElementById('user-email-input').value = '';
+            } catch (error) {
+                showAlert('Error setting user role: ' + error.message, true);
+            }
+        }
+
+        async function assignCar() {
+            const reg_no = document.getElementById('car-reg-input').value;
+            const hub = document.getElementById('hub-select').value;
+            if (!reg_no || !hub) return showAlert('Please fill in car registration and select a hub.');
+            try {
+                const res = await fetch(`${API_URL}/api/admin/assign-car`, { method: 'POST', headers, body: JSON.stringify({ reg_no, hub, reason: 'Assigned by Admin' }) });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error);
+                showAlert(result.message);
+                document.getElementById('car-reg-input').value = '';
+            } catch (error) {
+                showAlert('Error assigning car: ' + error.message, true);
+            }
+        }
+
+        async function syncData() {
+            const btn = document.getElementById('syncDataBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+            try {
+                const res = await fetch(`${API_URL}/api/admin/sync-hubs`, { method: 'POST' });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error || 'Sync failed');
+                showAlert(result.message);
+                loadStats();
+                loadHubs();
+            } catch (error) {
+                console.error('Sync failed:', error);
+                showAlert('Sync failed: ' + error.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Data';
+            }
+        }
+
+        function logout() {
+            fetch(`${API_URL}/api/auth/logout`, { method: 'POST' })
+                .then(res => {
+                    if (res.ok) window.location.href = 'index.html';
+                })
+                .catch(err => console.error('Logout failed:', err));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CARS24 - Auditor Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <h1 class="dashboard-title"><i class="fas fa-clipboard-check"></i> Auditor Dashboard</h1>
+                <div class="header-right"><span id="user-email"></span><button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
+            </div>
+        </header>
+        <main class="admin-main">
+            <section class="stats-section">
+                <div class="section-header"><h2><i class="fas fa-chart-line"></i> Audit Progress</h2><button class="refresh-btn" onclick="loadStats()"><i class="fas fa-sync-alt"></i> Refresh</button></div>
+                <div class="stats-grid">
+                    <div class="stat-card blue"><div class="stat-icon"><i class="fas fa-video"></i></div><div class="stat-content"><h3>Total Reports</h3><div class="stat-number" id="total-audits">...</div></div></div>
+                    <div class="stat-card purple"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-content"><h3>Pending</h3><div class="stat-number" id="pending-audits">...</div></div></div>
+                    <div class="stat-card green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-content"><h3>Approved</h3><div class="stat-number" id="approved-audits">...</div></div></div>
+                    <div class="stat-card red"><div class="stat-icon"><i class="fas fa-times-circle"></i></div><div class="stat-content"><h3>Rejected</h3><div class="stat-number" id="rejected-audits">...</div></div></div>
+                </div>
+            </section>
+            <section class="table-section">
+                <div class="section-header"><h2><i class="fas fa-hourglass-half"></i> Pending Video Audits</h2><button class="refresh-btn" onclick="loadPendingAudits()"><i class="fas fa-sync-alt"></i> Refresh</button></div>
+                <div class="table-container"><table class="modern-table"><thead><tr><th>Car Reg. No.</th><th>Hub</th><th>Cleaning Date</th><th>Submission Date</th><th>Ground Worker</th><th>Actions</th></tr></thead><tbody id="pending-audits-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody></table></div>
+            </section>
+            <section class="table-section">
+                <div class="section-header"><h2><i class="fas fa-history"></i> Recent Audit History</h2><button class="refresh-btn" onclick="loadAllAudits()"><i class="fas fa-sync-alt"></i> Refresh</button></div>
+                <div class="table-container"><table class="modern-table"><thead><tr><th>Car Reg. No.</th><th>Hub</th><th>Audit Date</th><th>Status</th><th>Rating</th><th>Actions</th></tr></thead><tbody id="all-audits-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody></table></div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal fade" id="videoAuditModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-video"></i> Video Audit - <span id="modal-reg-no"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Exterior Video</h5>
+                            <div class="video-container">
+                                <video id="exterior-video" controls width="100%"></video>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Interior Video</h5>
+                            <div class="video-container">
+                                <video id="interior-video" controls width="100%"></video>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="audit-details">
+                        <h5>Audit Decision</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="rating-select" class="form-label">Rating (1-5)</label>
+                                    <select id="rating-select" class="form-select">
+                                        <option value="">Select Rating</option>
+                                        <option value="1">1 - Poor</option>
+                                        <option value="2">2 - Fair</option>
+                                        <option value="3">3 - Good</option>
+                                        <option value="4">4 - Very Good</option>
+                                        <option value="5">5 - Excellent</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="audit-status" class="form-label">Decision</label>
+                                    <select id="audit-status" class="form-select">
+                                        <option value="">Select Decision</option>
+                                        <option value="approved">Approve</option>
+                                        <option value="rejected">Reject</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="audit-notes" class="form-label">Audit Notes (Optional)</label>
+                            <textarea id="audit-notes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submit-audit-btn">Submit Audit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="config.js"></script>
+    <script>
+        // The JavaScript you provided is correct and complete.
+        // It will now work correctly with the modal HTML above.
+        let currentAuditId = null;
+        const headers = { 'Content-Type': 'application/json' };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserInfo();
+            loadStats();
+            loadPendingAudits();
+            loadAllAudits();
+            document.getElementById('submit-audit-btn').addEventListener('click', submitAudit);
+        });
+
+        async function loadUserInfo() {
+            try {
+                const res = await fetch(`${API_URL}/api/auth/user-info`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                document.getElementById('user-email').textContent = data.email;
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_URL}/api/auditor/stats`);
+                const stats = await res.json();
+                if (!res.ok) throw new Error(stats.error);
+                document.getElementById('total-audits').textContent = stats.total || 0;
+                document.getElementById('pending-audits').textContent = stats.pending || 0;
+                document.getElementById('approved-audits').textContent = stats.approved || 0;
+                document.getElementById('rejected-audits').textContent = stats.rejected || 0;
+            } catch (error) {
+                console.error('Could not load stats', error);
+            }
+        }
+
+        async function loadPendingAudits() {
+            const tbody = document.getElementById('pending-audits-table');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+            try {
+                const res = await fetch(`${API_URL}/api/auditor/pending-audits`);
+                const audits = await res.json();
+                if (!res.ok) throw new Error(audits.error);
+                if (audits.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="no-data">No pending audits</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = audits.map(audit => `<tr><td><strong>${audit.reg_no}</strong></td><td><span class="location-badge">${audit.hub_location}</span></td><td>${new Date(audit.cleaning_date).toLocaleDateString()}</td><td>${new Date(audit.submission_date).toLocaleDateString()}</td><td>${audit.user_email}</td><td><button class="btn btn-primary btn-sm" onclick="openAuditModal(${audit.id})"><i class="fas fa-video"></i> Review</button></td></tr>`).join('');
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="error">Error loading data: ${error.message}</td></tr>`;
+            }
+        }
+
+        async function loadAllAudits() {
+            const tbody = document.getElementById('all-audits-table');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+            try {
+                const res = await fetch(`${API_URL}/api/auditor/all-audits`);
+                const audits = await res.json();
+                if (!res.ok) throw new Error(audits.error || 'Failed to load data');
+                if (audits.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="no-data">No audits found</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = audits.map(audit => {
+                    const statusClass = audit.status === 'approved' ? 'badge-success' : (audit.status === 'rejected' ? 'badge-danger' : 'badge-warning');
+                    return `<tr><td><strong>${audit.reg_no}</strong></td><td>${audit.hub_location}</td><td>${new Date(audit.audit_date).toLocaleDateString()}</td><td><span class="badge ${statusClass}">${audit.status}</span></td><td>${audit.audit_rating || 'N/A'}</td><td><button class="btn btn-sm btn-secondary" onclick="openAuditModal(${audit.id})"><i class="fas fa-eye"></i> View</button></td></tr>`;
+                }).join('');
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="error">Error loading data: ${error.message}</td></tr>`;
+            }
+        }
+
+        async function openAuditModal(auditId) {
+            currentAuditId = auditId;
+            try {
+                const res = await fetch(`${API_URL}/api/auditor/video-info/${auditId}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                
+                document.getElementById('modal-reg-no').textContent = data.reg_no;
+                document.getElementById('exterior-video').src = data.exterior_video_available ? `${API_URL}/api/video/exterior/${auditId}` : '';
+                document.getElementById('interior-video').src = data.interior_video_available ? `${API_URL}/api/video/interior/${auditId}` : '';
+                document.getElementById('audit-notes').value = data.audit_notes || '';
+                document.getElementById('rating-select').value = data.audit_rating || '';
+                document.getElementById('audit-status').value = data.audit_status === 'approved' || data.audit_status === 'rejected' ? data.audit_status : '';
+                
+                new bootstrap.Modal(document.getElementById('videoAuditModal')).show();
+            } catch (error) {
+                alert('Error loading audit details: ' + error.message);
+            }
+        }
+
+        async function submitAudit() {
+            const auditData = {
+                audit_status: document.getElementById('audit-status').value,
+                audit_rating: document.getElementById('rating-select').value,
+                audit_notes: document.getElementById('audit-notes').value
+            };
+            if (!auditData.audit_status || !auditData.audit_rating) {
+                return alert('Please provide both rating and audit decision.');
+            }
+            try {
+                const res = await fetch(`${API_URL}/api/auditor/audit/${currentAuditId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(auditData) });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error);
+                alert('Audit submitted successfully!');
+                bootstrap.Modal.getInstance(document.getElementById('videoAuditModal')).hide();
+                loadStats();
+                loadPendingAudits();
+                loadAllAudits();
+            } catch (error) {
+                alert('Error submitting audit: ' + error.message);
+            }
+        }
+
+        function logout() {
+            fetch(`${API_URL}/api/auth/logout`, { method: 'POST' }).then(() => window.location.href = 'index.html');
+        }
+    </script>
+</body>
+</html>

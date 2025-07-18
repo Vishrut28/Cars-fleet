@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yard Manager Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <h1 class="dashboard-title"><i class="fas fa-user-tie"></i> Yard Manager Dashboard</h1>
+                <div class="header-right"><button class="refresh-btn" onclick="loadYardDashboard()"><i class="fas fa-sync-alt"></i> Refresh</button><button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
+            </div>
+        </header>
+        <main class="admin-main">
+            <section class="stats-section">
+                <div class="section-header"><h2><i class="fas fa-chart-line"></i> My Hub Overview</h2></div>
+                <div class="stats-grid">
+                    <div class="stat-card blue"><div class="stat-icon"><i class="fas fa-car"></i></div><div class="stat-content"><h3>Assigned Cars</h3><div class="stat-number" id="assigned-cars-count">...</div></div></div>
+                    <div class="stat-card green"><div class="stat-icon"><i class="fas fa-video"></i></div><div class="stat-content"><h3>Videos Uploaded</h3><div class="stat-number" id="uploaded-videos-count">...</div></div></div>
+                    <div class="stat-card purple"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-content"><h3>Pending Audits</h3><div class="stat-number" id="pending-audits-count">...</div></div></div>
+                    <div class="stat-card red"><div class="stat-icon"><i class="fas fa-chart-bar"></i></div><div class="stat-content"><h3>Hub Adherence</h3><div class="stat-number" id="hub-adherence-rate">...</div></div></div>
+                </div>
+            </section>
+            <section class="table-section">
+                <div class="section-header"><h2><i class="fas fa-car"></i> Assigned Cars Status</h2></div>
+                <div class="table-container"><table class="modern-table"><thead><tr><th>Car Reg No</th><th>Hub Location</th><th>Status</th><th>Ground Worker</th><th>Upload Date</th><th>Audit Status</th></tr></thead><tbody id="assigned-cars-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody></table></div>
+            </section>
+            <section class="table-section">
+                <div class="section-header"><h2><i class="fas fa-video"></i> My Hub's Video Uploads</h2></div>
+                <div class="table-container"><table class="modern-table"><thead><tr><th>Car Reg No</th><th>Ground Worker</th><th>Upload Date</th><th>Audit Status</th><th>Rating</th><th>Actions</th></tr></thead><tbody id="video-uploads-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody></table></div>
+            </section>
+        </main>
+    </div>
+    <script src="config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadYardDashboard);
+
+        async function loadYardDashboard() {
+            try {
+                await Promise.all([loadStats(), loadAssignedCars(), loadVideoUploads()]);
+            } catch (error) {
+                console.error('Error loading yard dashboard:', error);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/api/yard/stats`);
+                const stats = await response.json();
+                if (!response.ok) throw new Error(stats.error);
+                document.getElementById('assigned-cars-count').textContent = stats.assigned_cars || 0;
+                document.getElementById('uploaded-videos-count').textContent = stats.uploaded_videos || 0;
+                document.getElementById('pending-audits-count').textContent = stats.pending_audits || 0;
+                document.getElementById('hub-adherence-rate').textContent = (stats.adherence_rate || 0) + '%';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadAssignedCars() {
+             const tbody = document.getElementById('assigned-cars-table');
+             tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+            try {
+                const response = await fetch(`${API_URL}/api/yard/video-assignments`);
+                const cars = await response.json();
+                if (!response.ok) throw new Error(cars.error);
+                if (cars.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="no-data">No cars assigned to your hubs.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = cars.map(car => `<tr><td><strong>${car.reg_no}</strong></td><td><span class="location-badge">${car.hub_location}</span></td><td><span class="badge ${getStatusClass(car.status)}">${car.status}</span></td><td>${car.ground_worker || 'N/A'}</td><td>${formatDate(car.submission_date)}</td><td><span class="badge ${getAuditStatusClass(car.audit_status)}">${car.audit_status || 'N/A'}</span></td></tr>`).join('');
+            } catch (error) {
+                 tbody.innerHTML = `<tr><td colspan="6" class="error">Error loading data</td></tr>`;
+            }
+        }
+
+        async function loadVideoUploads() {
+            const tbody = document.getElementById('video-uploads-table');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+            try {
+                const response = await fetch(`${API_URL}/api/yard/manager-videos`);
+                const videos = await response.json();
+                if (!response.ok) throw new Error(videos.error);
+                if (videos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="no-data">No videos uploaded yet from your hubs.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = videos.map(video => `<tr><td><strong>${video.reg_no}</strong></td><td>${video.ground_worker}</td><td>${formatDate(video.submission_date)}</td><td><span class="badge ${getAuditStatusClass(video.audit_status)}">${video.audit_status}</span></td><td>${video.audit_rating ? video.audit_rating + '/5 ⭐' : 'Not rated'}</td><td><button class="btn btn-sm btn-primary" onclick="viewVideoDetails(${video.id})"><i class="fas fa-eye"></i> View</button></td></tr>`).join('');
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="error">Error loading data</td></tr>`;
+            }
+        }
+
+        function viewVideoDetails(reportId) {
+            if (!reportId) {
+                alert('No video report available for this entry.');
+                return;
+            }
+            window.open(`${API_URL}/api/video/exterior/${reportId}`, '_blank');
+            window.open(`${API_URL}/api/video/interior/${reportId}`, '_blank');
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            return new Date(dateString).toLocaleDateString();
+        }
+
+        function getStatusClass(status) {
+            switch (status) {
+                case 'Uploaded': return 'badge-success';
+                case 'Pending': return 'badge-warning';
+                default: return 'badge-secondary';
+            }
+        }
+
+        function getAuditStatusClass(status) {
+            switch (status) {
+                case 'approved': return 'badge-success';
+                case 'rejected': return 'badge-danger';
+                case 'pending': return 'badge-warning';
+                default: return 'badge-secondary';
+            }
+        }
+
+        function logout() {
+            fetch(`${API_URL}/api/auth/logout`, { method: 'POST' }).then(() => window.location.href = 'index.html');
+        }
+    </script>
+</body>
+</html>
