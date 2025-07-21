@@ -52,7 +52,7 @@ const adminRoutes = require('./routes/admin')(pool);
 const auditorRoutes = require('./routes/auditor')(pool);
 const groundRoutes = require('./routes/ground')(pool);
 const yardRoutes = require('./routes/yard')(pool);
-const publicRoutes = require('./routes/public')(pool);
+const publicRoutes = require('./routes/public')(pool, requireAuth);
 
 // Mount routes
 app.use('/api/auth', authRoutes);
