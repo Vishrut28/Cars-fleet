@@ -13,14 +13,24 @@ async function syncHubsFromGoogleSheets(pool) {
         scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
     const sheets = google.sheets({ version: 'v4', auth });
+    // const response = await sheets.spreadsheets.values.get({
+    //     spreadsheetId: '1Of8Wl0xnLdtQb2MLeaYXvw_ZX9RKI1o1yrhxNZlyhnM',
+    //     range: 'Sheet1!A2:C',
+    // });
+    // const rows = response.data.values;
+    // if (!rows || rows.length === 0) {
+    //     return { message: 'No data found in Google Sheets to sync.' };
+    // }
     const response = await sheets.spreadsheets.values.get({
         spreadsheetId: '1Of8Wl0xnLdtQb2MLeaYXvw_ZX9RKI1o1yrhxNZlyhnM',
         range: 'Sheet1!A2:C',
-    });
-    const rows = response.data.values;
-    if (!rows || rows.length === 0) {
+        });
+        console.log('API Response:', response.data);
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+        console.log('No data found. Response:', response.data);
         return { message: 'No data found in Google Sheets to sync.' };
-    }
+        }
 
     const client = await pool.connect();
     try {
