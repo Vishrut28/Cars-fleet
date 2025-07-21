@@ -28,7 +28,7 @@ app.use(session({
   }
 }));
 
-// Create the Pool. It will manage connections automatically.
+// Create the Pool. It will manage connections automatically as needed.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -77,7 +77,6 @@ process.on('SIGINT', async () => {
   await pool.end();
   process.exit(0);
 });
-
 
 
 // // ============== TEMPORARY server.js FOR TESTING ==============
