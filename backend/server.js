@@ -28,7 +28,7 @@ app.use(session({
   }
 }));
 
-// Create the Pool but do not initialize the DB yet
+// Create the Pool. It will manage connections automatically.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -46,7 +46,7 @@ const requireAuth = (role = null) => (req, res, next) => {
     next();
 };
 
-// Define routes
+// Define and mount routes
 const authRoutes = require('./routes/auth')(pool);
 const adminRoutes = require('./routes/admin')(pool);
 const auditorRoutes = require('./routes/auditor')(pool);
@@ -54,7 +54,6 @@ const groundRoutes = require('./routes/ground')(pool);
 const yardRoutes = require('./routes/yard')(pool);
 const publicRoutes = require('./routes/public')(pool, requireAuth);
 
-// Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', requireAuth('admin'), adminRoutes);
 app.use('/api/auditor', requireAuth('auditor'), auditorRoutes);
@@ -68,20 +67,9 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'An internal server error occurred.' });
 });
 
-// Start the server FIRST
+// Start the server
 app.listen(port, () => {
     logger.info(`🚀 Server listening on port ${port}`);
-    
-    // THEN, connect to the DB and initialize the schema
-    pool.query('SELECT NOW()', (err, res) => {
-        if (err) {
-            logger.error('FATAL: Error connecting to the database:', err);
-        } else {
-            logger.info(`✅ PostgreSQL Database connected at ${res.rows[0].now}`);
-            // Initialize the database schema
-            require('./db-init')(pool);
-        }
-    });
 });
 
 process.on('SIGINT', async () => {
@@ -89,7 +77,6 @@ process.on('SIGINT', async () => {
   await pool.end();
   process.exit(0);
 });
-
 
 
 
