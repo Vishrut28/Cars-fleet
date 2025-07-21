@@ -35,16 +35,20 @@ const pool = new Pool({
     rejectUnauthorized: false // Required for cloud providers like Railway
   }
 });
-
+app.listen(port, () => {
+    logger.info(`🚀 Server listening on port ${port}`);
 // Initialize database schema on startup
 pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    logger.error('Error connecting to the database:', err);
-  } else {
-    logger.info(`✅ PostgreSQL Database connected at ${res.rows[0].now}`);
-    require('./db-init')(pool); // DB init happens BEFORE server starts
-  }
+        if (err) {
+            logger.error('Error connecting to the database:', err);
+        } else {
+            logger.info(`✅ PostgreSQL Database connected at ${res.rows[0].now}`);
+            // Initialize the database schema
+            require('./db-init')(pool);
+        }
+    });
 });
+
 
 const requireAuth = (role = null) => (req, res, next) => {
     if (!req.session || !req.session.userId) {
@@ -75,7 +79,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'An internal server error occurred.' });
 });
 
-app.listen(port, () => logger.info(`🚀 Server listening on port ${port}`));
+// app.listen(port, () => logger.info(`🚀 Server listening on port ${port}`));
 
 process.on('SIGINT', async () => {
   logger.info('Closing database connection pool.');
