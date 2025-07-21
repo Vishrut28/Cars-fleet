@@ -28,7 +28,7 @@ app.use(session({
   }
 }));
 
-// Create the Pool. It will manage connections automatically as needed.
+// Create the Pool. It will manage connections automatically.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
