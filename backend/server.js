@@ -42,7 +42,7 @@ pool.query('SELECT NOW()', (err, res) => {
     logger.error('Error connecting to the database:', err);
   } else {
     logger.info(`✅ PostgreSQL Database connected at ${res.rows[0].now}`);
-    require('./db-init')(pool);
+    require('./db-init')(pool); // DB init happens BEFORE server starts
   }
 });
 
