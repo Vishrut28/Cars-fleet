@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { google } = require('googleapis');
-const logger = require('../logger'); // Make sure logger is imported
+// const logger = require('../logger'); // Make sure logger is imported
+const logger = require('../logger');
 
 async function syncHubsFromGoogleSheets(pool) {
-    // This function now has a more detailed try...catch block
     try {
         const credentialsContent = process.env.GOOGLE_CREDENTIALS;
         if (!credentialsContent) {
@@ -42,19 +42,19 @@ async function syncHubsFromGoogleSheets(pool) {
             return { message: `Synced ${rows.length} car assignments and hubs successfully.` };
         } catch (dbErr) {
             await client.query('ROLLBACK');
-            throw dbErr; // Re-throw database errors
+            throw dbErr;
         } finally {
             client.release();
         }
     } catch (err) {
-        // This will now catch any error (permissions, wrong ID, etc.)
-        // and log it properly.
+        // This improved block will now catch any error (permissions, wrong ID, etc.)
+        // and log it properly before crashing.
         logger.error({
             message: "Google Sheets sync failed",
             error: err.message,
             stack: err.stack
         });
-        // Re-throw the error to be caught by the route's error handler
+        // Re-throw the error to ensure the route still fails as expected
         throw err;
     }
 }
