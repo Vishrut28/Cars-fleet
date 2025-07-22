@@ -1,61 +1,61 @@
 const express = require('express');
 const router = express.Router();
 const { google } = require('googleapis');
+const logger = require('../logger'); // Make sure logger is imported
 
 async function syncHubsFromGoogleSheets(pool) {
-    const credentialsContent = process.env.GOOGLE_CREDENTIALS;
-    if (!credentialsContent) {
-        throw new Error('Server is not configured for Google Sheets sync. GOOGLE_CREDENTIALS environment variable is missing.');
-    }
-    const credentials = JSON.parse(credentialsContent);
-    const auth = new google.auth.GoogleAuth({
-        credentials,
-        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-    });
-    const sheets = google.sheets({ version: 'v4', auth });
-    // const response = await sheets.spreadsheets.values.get({
-    //     spreadsheetId: '1Of8Wl0xnLdtQb2MLeaYXvw_ZX9RKI1o1yrhxNZlyhnM',
-    //     range: 'Sheet1!A2:C',
-    // });
-    // const rows = response.data.values;
-    // if (!rows || rows.length === 0) {
-    //     return { message: 'No data found in Google Sheets to sync.' };
-    // }
-    const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: '1Of8Wl0xnLdtQb2MLeaYXvw_ZX9RKI1o1yrhxNZlyhnM',
-        range: 'Sheet1!A2:C',
+    // This function now has a more detailed try...catch block
+    try {
+        const credentialsContent = process.env.GOOGLE_CREDENTIALS;
+        if (!credentialsContent) {
+            throw new Error('Server is not configured for Google Sheets sync. GOOGLE_CREDENTIALS environment variable is missing.');
+        }
+        const credentials = JSON.parse(credentialsContent);
+        const auth = new google.auth.GoogleAuth({
+            credentials,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
         });
-        console.log('API Response:', response.data);
+        const sheets = google.sheets({ version: 'v4', auth });
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1Of8Wl0xnLdtQb2MLeaYXvw_ZX9RKI1o1yrhxNZlyhnM',
+            range: 'Sheet1!A2:C',
+        });
         const rows = response.data.values;
         if (!rows || rows.length === 0) {
-        console.log('No data found. Response:', response.data);
-        return { message: 'No data found in Google Sheets to sync.' };
+            return { message: 'No data found in Google Sheets to sync.' };
         }
 
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        await client.query('TRUNCATE hubs, car_assignments RESTART IDENTITY CASCADE');
-        
-        for (const row of rows) {
-            const [reg_no, hub_location, reason] = row;
-            if (hub_location && hub_location.trim()) {
-                await client.query(`INSERT INTO hubs (name, location, sheet_id) VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING`,
-                    [hub_location, hub_location, '1Of8Wl0xnLdtQb2MLeaYXvw_ZX9RKI1o1yrhxNZlyhnM']);
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('TRUNCATE hubs, car_assignments RESTART IDENTITY CASCADE');
+            for (const row of rows) {
+                const [reg_no, hub_location, reason] = row;
+                if (hub_location && hub_location.trim()) {
+                    await client.query(`INSERT INTO hubs (name, location, sheet_id) VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING`, [hub_location, hub_location, '1Of8Wl0xnLdtQb2MLeaYXvw_ZX9RKI1o1yrhxNZlyhnM']);
+                }
+                if (reg_no && hub_location) {
+                    await client.query(`INSERT INTO car_assignments (reg_no, hub_location, reason) VALUES ($1, $2, $3) ON CONFLICT (reg_no) DO UPDATE SET hub_location = EXCLUDED.hub_location, reason = EXCLUDED.reason`, [reg_no, hub_location, reason || 'unknown']);
+                }
             }
-            if (reg_no && hub_location) {
-                await client.query(`INSERT INTO car_assignments (reg_no, hub_location, reason) VALUES ($1, $2, $3) ON CONFLICT (reg_no) DO UPDATE SET hub_location = EXCLUDED.hub_location, reason = EXCLUDED.reason`,
-                    [reg_no, hub_location, reason || 'unknown']);
-            }
+            await client.query('COMMIT');
+            return { message: `Synced ${rows.length} car assignments and hubs successfully.` };
+        } catch (dbErr) {
+            await client.query('ROLLBACK');
+            throw dbErr; // Re-throw database errors
+        } finally {
+            client.release();
         }
-        await client.query('COMMIT');
-        return { message: `Synced ${rows.length} car assignments and hubs successfully.` };
     } catch (err) {
-        await client.query('ROLLBACK');
-        console.error('❌ Google Sheets sync transaction error:', err);
+        // This will now catch any error (permissions, wrong ID, etc.)
+        // and log it properly.
+        logger.error({
+            message: "Google Sheets sync failed",
+            error: err.message,
+            stack: err.stack
+        });
+        // Re-throw the error to be caught by the route's error handler
         throw err;
-    } finally {
-        client.release();
     }
 }
 
