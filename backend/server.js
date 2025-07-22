@@ -16,15 +16,16 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', 
+    secure: true, // Required for SameSite=None
     httpOnly: true, 
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000
+    sameSite: 'none', // Allow cross-domain cookies
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
