@@ -16,16 +16,15 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: { 
-    secure: true, // Required for SameSite=None
+    secure: process.env.NODE_ENV === 'production', 
     httpOnly: true, 
-    sameSite: 'none', // Allow cross-domain cookies
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
@@ -78,48 +77,3 @@ process.on('SIGINT', async () => {
   await pool.end();
   process.exit(0);
 });
-
-
-// // ============== TEMPORARY server.js FOR TESTING ==============
-// if (process.env.NODE_ENV !== 'production') {
-//     require('dotenv').config();
-// }
-
-// const express = require('express');
-// const session = require('express-session');
-// const cors = require('cors');
-// const logger = require('./logger');
-
-// const app = express();
-// const port = process.env.PORT || 3000;
-
-// app.use(cors({
-//   origin: process.env.CORS_ORIGIN,
-//   credentials: true
-// }));
-// app.use(express.json());
-// app.use(session({
-//   secret: process.env.SESSION_SECRET || 'fallback-secret',
-//   resave: false,
-//   saveUninitialized: true,
-//   cookie: { 
-//     secure: process.env.NODE_ENV === 'production', 
-//     httpOnly: true, 
-//     sameSite: 'lax'
-//   }
-// }));
-
-// // A simple test route at the root
-// app.get('/', (req, res) => {
-//     res.send('Hello! The basic server is running.');
-// });
-
-// // Centralized Error Handling
-// app.use((err, req, res, next) => {
-//     logger.error({ message: err.message, stack: err.stack, url: req.originalUrl });
-//     res.status(500).json({ error: 'An internal server error occurred.' });
-// });
-
-// app.listen(port, () => {
-//     logger.info(`🚀 Server listening on port ${port}. Database connection is disabled for this test.`);
-// });

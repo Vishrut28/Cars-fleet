@@ -3,4 +3,4 @@
  * IMPORTANT: After you deploy your backend to Railway, replace the placeholder
  * with your actual Railway deployment URL.
  */
-const API_URL = 'https://acceptable-freedom-production.up.railway.app';
+const API_URL = 'https://cars-fleet-production-6543.up.railway.app';
