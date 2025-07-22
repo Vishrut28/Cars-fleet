@@ -68,7 +68,7 @@
 
         async function loadStats() {
             try {
-                const res = await fetch(`${API_URL}/api/admin/stats`);
+                const res = await fetch(`${API_URL}/api/admin/stats`, { credentials: 'include' }); // <-- MODIFIED
                 const stats = await res.json();
                 if (!res.ok) throw new Error(stats.error || 'Failed to load stats');
                 document.getElementById('total-assigned').textContent = stats.total_assigned || 0;
@@ -83,7 +83,7 @@
 
         async function loadHubs() {
             try {
-                const res = await fetch(`${API_URL}/api/hubs`);
+                const res = await fetch(`${API_URL}/api/hubs`, { credentials: 'include' }); // <-- MODIFIED
                 const hubs = await res.json();
                 if (!res.ok) throw new Error(hubs.error || 'Failed to load hubs');
                 const hubSelect = document.getElementById('hub-select');
@@ -99,7 +99,12 @@
             const role = document.getElementById('user-role-select').value;
             if (!email) return showAlert('Please enter an email address.');
             try {
-                const res = await fetch(`${API_URL}/api/admin/set-user-role`, { method: 'POST', headers, body: JSON.stringify({ email, role }) });
+                const res = await fetch(`${API_URL}/api/admin/set-user-role`, { // <-- MODIFIED
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ email, role }),
+                    credentials: 'include'
+                });
                 const result = await res.json();
                 if (!res.ok) throw new Error(result.error);
                 showAlert(result.message);
@@ -114,7 +119,12 @@
             const hub = document.getElementById('hub-select').value;
             if (!reg_no || !hub) return showAlert('Please fill in car registration and select a hub.');
             try {
-                const res = await fetch(`${API_URL}/api/admin/assign-car`, { method: 'POST', headers, body: JSON.stringify({ reg_no, hub, reason: 'Assigned by Admin' }) });
+                const res = await fetch(`${API_URL}/api/admin/assign-car`, { // <-- MODIFIED
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ reg_no, hub, reason: 'Assigned by Admin' }),
+                    credentials: 'include'
+                });
                 const result = await res.json();
                 if (!res.ok) throw new Error(result.error);
                 showAlert(result.message);
@@ -129,7 +139,10 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
             try {
-                const res = await fetch(`${API_URL}/api/admin/sync-hubs`, { method: 'POST' });
+                const res = await fetch(`${API_URL}/api/admin/sync-hubs`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
                 const result = await res.json();
                 if (!res.ok) throw new Error(result.error || 'Sync failed');
                 showAlert(result.message);
@@ -145,11 +158,14 @@
         }
 
         function logout() {
-            fetch(`${API_URL}/api/auth/logout`, { method: 'POST' })
-                .then(res => {
-                    if (res.ok) window.location.href = 'index.html';
-                })
-                .catch(err => console.error('Logout failed:', err));
+            fetch(`${API_URL}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(res => {
+                if (res.ok) window.location.href = 'index.html';
+            })
+            .catch(err => console.error('Logout failed:', err));
         }
     </script>
 </body>

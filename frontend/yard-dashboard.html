@@ -49,7 +49,7 @@
 
         async function loadStats() {
             try {
-                const response = await fetch(`${API_URL}/api/yard/stats`);
+                const response = await fetch(`${API_URL}/api/yard/stats`, { credentials: 'include' }); // <-- MODIFIED
                 const stats = await response.json();
                 if (!response.ok) throw new Error(stats.error);
                 document.getElementById('assigned-cars-count').textContent = stats.assigned_cars || 0;
@@ -65,7 +65,7 @@
              const tbody = document.getElementById('assigned-cars-table');
              tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
             try {
-                const response = await fetch(`${API_URL}/api/yard/video-assignments`);
+                const response = await fetch(`${API_URL}/api/yard/video-assignments`, { credentials: 'include' }); // <-- MODIFIED
                 const cars = await response.json();
                 if (!response.ok) throw new Error(cars.error);
                 if (cars.length === 0) {
@@ -82,7 +82,7 @@
             const tbody = document.getElementById('video-uploads-table');
             tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
             try {
-                const response = await fetch(`${API_URL}/api/yard/manager-videos`);
+                const response = await fetch(`${API_URL}/api/yard/manager-videos`, { credentials: 'include' }); // <-- MODIFIED
                 const videos = await response.json();
                 if (!response.ok) throw new Error(videos.error);
                 if (videos.length === 0) {
@@ -127,7 +127,10 @@
         }
 
         function logout() {
-            fetch(`${API_URL}/api/auth/logout`, { method: 'POST' }).then(() => window.location.href = 'index.html');
+            fetch(`${API_URL}/api/auth/logout`, { // <-- MODIFIED
+                method: 'POST',
+                credentials: 'include'
+            }).then(() => window.location.href = 'index.html');
         }
     </script>
 </body>

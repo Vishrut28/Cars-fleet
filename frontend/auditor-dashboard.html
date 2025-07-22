@@ -103,8 +103,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
     <script src="config.js"></script>
     <script>
-        // The JavaScript you provided is correct and complete.
-        // It will now work correctly with the modal HTML above.
         let currentAuditId = null;
         const headers = { 'Content-Type': 'application/json' };
         
@@ -118,7 +116,7 @@
 
         async function loadUserInfo() {
             try {
-                const res = await fetch(`${API_URL}/api/auth/user-info`);
+                const res = await fetch(`${API_URL}/api/auth/user-info`, { credentials: 'include' });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
                 document.getElementById('user-email').textContent = data.email;
@@ -129,7 +127,7 @@
 
         async function loadStats() {
             try {
-                const res = await fetch(`${API_URL}/api/auditor/stats`);
+                const res = await fetch(`${API_URL}/api/auditor/stats`, { credentials: 'include' });
                 const stats = await res.json();
                 if (!res.ok) throw new Error(stats.error);
                 document.getElementById('total-audits').textContent = stats.total || 0;
@@ -145,7 +143,7 @@
             const tbody = document.getElementById('pending-audits-table');
             tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
             try {
-                const res = await fetch(`${API_URL}/api/auditor/pending-audits`);
+                const res = await fetch(`${API_URL}/api/auditor/pending-audits`, { credentials: 'include' });
                 const audits = await res.json();
                 if (!res.ok) throw new Error(audits.error);
                 if (audits.length === 0) {
@@ -162,7 +160,7 @@
             const tbody = document.getElementById('all-audits-table');
             tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
             try {
-                const res = await fetch(`${API_URL}/api/auditor/all-audits`);
+                const res = await fetch(`${API_URL}/api/auditor/all-audits`, { credentials: 'include' });
                 const audits = await res.json();
                 if (!res.ok) throw new Error(audits.error || 'Failed to load data');
                 if (audits.length === 0) {
@@ -181,7 +179,7 @@
         async function openAuditModal(auditId) {
             currentAuditId = auditId;
             try {
-                const res = await fetch(`${API_URL}/api/auditor/video-info/${auditId}`);
+                const res = await fetch(`${API_URL}/api/auditor/video-info/${auditId}`, { credentials: 'include' });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
                 
@@ -208,7 +206,12 @@
                 return alert('Please provide both rating and audit decision.');
             }
             try {
-                const res = await fetch(`${API_URL}/api/auditor/audit/${currentAuditId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(auditData) });
+                const res = await fetch(`${API_URL}/api/auditor/audit/${currentAuditId}`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(auditData),
+                    credentials: 'include'
+                });
                 const result = await res.json();
                 if (!res.ok) throw new Error(result.error);
                 alert('Audit submitted successfully!');
@@ -222,7 +225,10 @@
         }
 
         function logout() {
-            fetch(`${API_URL}/api/auth/logout`, { method: 'POST' }).then(() => window.location.href = 'index.html');
+            fetch(`${API_URL}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            }).then(() => window.location.href = 'index.html');
         }
     </script>
 </body>
