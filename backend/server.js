@@ -22,9 +22,9 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { 
+  cookie: {
     secure: true,
-    httpOnly: true, 
+    httpOnly: true,
     sameSite: 'none',
     maxAge: 24 * 60 * 60 * 1000
   }
@@ -46,7 +46,7 @@ const requireAuth = (role = null) => (req, res, next) => {
 // Start the server IMMEDIATELY
 app.listen(port, () => {
     logger.info(`🚀 Server listening on port ${port}. Initializing database connection...`);
-    
+
     // NOW, create the database pool after the server is running
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
