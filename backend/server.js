@@ -33,6 +33,13 @@ app.use(session({
 // Placeholder for the database pool
 let pool;
 
+// ** NEW HEALTH CHECK ROUTE **
+// This is the first route defined. Railway will check this to see if the server is running.
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
+
 const requireAuth = (role = null) => (req, res, next) => {
     if (!req.session || !req.session.userId) {
         return res.status(401).json({ error: 'Unauthorized. Please log in.' });
@@ -55,7 +62,7 @@ app.listen(port, () => {
       }
     });
 
-    // Define and mount routes inside the listen callback
+    // Define and mount all other routes inside the listen callback
     const authRoutes = require('./routes/auth')(pool);
     const adminRoutes = require('./routes/admin')(pool);
     const auditorRoutes = require('./routes/auditor')(pool);
