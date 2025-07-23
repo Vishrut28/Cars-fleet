@@ -22,14 +22,14 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: { 
-    secure: true, // Required for SameSite=None
+    secure: true,
     httpOnly: true, 
-    sameSite: 'none', // Allow cross-domain cookies
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    sameSite: 'none',
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
-// Create the Pool. It will manage connections automatically.
+// Create the Pool. It will manage connections automatically as requests come in.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
