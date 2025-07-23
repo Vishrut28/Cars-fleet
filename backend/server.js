@@ -30,15 +30,14 @@ app.use(session({
   }
 }));
 
-// Placeholder for the database pool
-let pool;
-
 // ** NEW HEALTH CHECK ROUTE **
 // This is the first route defined. Railway will check this to see if the server is running.
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 
+// Placeholder for the database pool
+let pool;
 
 const requireAuth = (role = null) => (req, res, next) => {
     if (!req.session || !req.session.userId) {
